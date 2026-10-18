@@ -1,7 +1,7 @@
-# Puppy Log
+# Paw Log
 
-A free, private puppy app: potty timer and house-training progress, meals, sleep, walks, health and vet records,
-training guides and brain games, and a growing-up photo album.
+A free, private app for your dog or cat: potty timer and house-training (dogs) or litter box log (cats), meals, sleep,
+health and vet records, training guides and games, and a growing-up photo album. It takes your pet's name on your home screen.
 
 **Open it:** https://efem-code.github.io/puppy-log/ → add it to your home screen (iPhone: Safari → Share → Add to Home Screen;
 Android: Chrome → ⋮ → Add to Home screen).

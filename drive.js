@@ -1,4 +1,4 @@
-/* Google Drive, through the Puppy Log bridge (bridge/Code.gs).
+/* Google Drive, through the Paw Log bridge (bridge/Code.gs).
 
    The bridge is a small Google Apps Script web app deployed from your own
    Google account. It saves into your folder as you, so the phones need
@@ -46,7 +46,7 @@ const Drive = (() => {
       const j = JSON.parse(atob(code.replace(/-/g, '+').replace(/_/g, '/')));
       if (j.u && j.k && /^https:\/\/script\.google\.com\//.test(j.u)) return j;
     } catch {}
-    throw new Error('That isn’t a Puppy Log connection code');
+    throw new Error('That isn’t a Paw Log connection code');
   }
 
   /* The service worker can't read localStorage, so it gets the bridge from IndexedDB

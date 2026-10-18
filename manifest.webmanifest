@@ -1,7 +1,7 @@
 {
-  "name": "Puppy Log",
-  "short_name": "Puppy Log",
-  "description": "Potty timer, health records, training and a growing-up album for your puppy — free, private, shared between phones.",
+  "name": "Paw Log",
+  "short_name": "Paw Log",
+  "description": "Daily log, health records, training and a growing-up album for your dog or cat — free, private, shared between phones.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -34,9 +34,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Log pee",
-      "short_name": "Pee",
-      "url": "./#log=pee",
+      "name": "Log potty / litter",
+      "short_name": "Potty",
+      "url": "./#log=potty",
       "icons": [
         {
           "src": "icon-192.png",
@@ -45,31 +45,9 @@
       ]
     },
     {
-      "name": "Log poop",
-      "short_name": "Poop",
-      "url": "./#log=poop",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Fed the puppy",
+      "name": "Log a meal",
       "short_name": "Meal",
       "url": "./#log=meal",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Start / end walk",
-      "short_name": "Walk",
-      "url": "./#log=walk",
       "icons": [
         {
           "src": "icon-192.png",
