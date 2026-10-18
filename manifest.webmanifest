@@ -1,0 +1,82 @@
+{
+  "name": "Puppy Log",
+  "short_name": "Puppy Log",
+  "description": "Potty timer, health records, training and a growing-up album for your puppy — free, private, shared between phones.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c1814",
+  "theme_color": "#1c1814",
+  "categories": [
+    "lifestyle",
+    "photo"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log pee",
+      "short_name": "Pee",
+      "url": "./#log=pee",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Log poop",
+      "short_name": "Poop",
+      "url": "./#log=poop",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Fed the puppy",
+      "short_name": "Meal",
+      "url": "./#log=meal",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Start / end walk",
+      "short_name": "Walk",
+      "url": "./#log=walk",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "id": "./"
+}
