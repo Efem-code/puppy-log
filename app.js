@@ -1378,7 +1378,26 @@ async function onFiles(input) {
   toast(`Saved ${made.length > 1 ? made.length + ' items' : ''}${dups.length ? ` · ${dups.length} duplicate${dups.length > 1 ? 's' : ''} skipped` : ''} — ${Drive.configured() ? 'uploading to Drive' : 'will upload when synced'}`,
     made.length === 1 ? [{ label: 'Add caption', run: () => viewer(made[0].id) }] : []);
 }
-ACT.portrait = () => Media.portraitCamera(rec => toast(`${isCat() ? '🐱' : '🐶'} Week ${App.weekOf(rec.at) ?? ''} portrait saved`, [{ label: 'View', run: () => viewer(rec.id) }]));
+/* One portrait per week of age. The Mac fills in a week nobody shot (reels/pick_portraits.py,
+   autoPortrait); a real one taken here, or a photo picked by hand, replaces it. */
+async function setPortrait(id, { onlyAuto = false } = {}) {   // onlyAuto: a fresh shot replaces just the Mac's pick
+  const rec = Store.get(id), wk = App.weekOf(rec.at);
+  for (const r of Store.list('media', r => r.portrait && r.id !== id && App.weekOf(r.at) === wk && (!onlyAuto || r.autoPortrait)))
+    await Store.put({ id: r.id, portrait: false, autoPortrait: false });
+  await Store.put({ id, portrait: true, autoPortrait: false });
+}
+function portraitPicker(wk) {
+  const photos = Store.list('media', r => !r.doc && !r.video && App.weekOf(r.at) === wk).reverse();
+  sheet(`<h2>🐶 Week ${wk} portrait</h2><p class="muted">Tap the photo to use for week ${wk} in the growing-up flipbook.</p>
+    <div class="grid">${photos.map(r => `<button class="gi ${r.portrait ? 'picked' : ''}" data-pick="${r.id}"><div class="th" data-thumb="${r.id}"></div>${r.portrait ? '<span class="pickn">✓</span>' : ''}</button>`).join('') || '<p class="muted">No photos that week.</p>'}</div>`, root => {
+    Media.hydrate(root);
+    root.querySelectorAll('[data-pick]').forEach(b => b.onclick = async () => { await setPortrait(b.dataset.pick); closeSheet(); toast(`Week ${wk}’s portrait updated`); });
+  });
+}
+ACT.portrait = () => Media.portraitCamera(async rec => {
+  await setPortrait(rec.id, { onlyAuto: true });
+  toast(`${isCat() ? '🐱' : '🐶'} Week ${App.weekOf(rec.at) ?? ''} portrait saved`, [{ label: 'View', run: () => viewer(rec.id) }]);
+});
 ACT.memFilter = d => { ui.memFilter = d.k; render(); };
 ACT.view = d => viewer(d.id);
 
@@ -1419,6 +1438,7 @@ async function viewer(id) {
         ${navigator.share ? '<button data-v="share">Share</button>' : ''}
         ${rec.driveId ? `<a href="${Drive.webLink(rec.driveId)}" target="_blank" rel="noopener">Drive</a>` : '<span class="muted small">⏳ not uploaded yet</span>'}
         ${!rec.video && !rec.doc ? '<button data-v="avatar">Profile pic</button>' : ''}
+        ${!rec.video && !rec.doc && App.weekOf(rec.at) != null ? (rec.portrait ? '<button data-v="portraitPick">🔄 Pick another portrait</button>' : `<button data-v="portraitThis">🐶 Week ${App.weekOf(rec.at)} portrait</button>`) : ''}
         ${!rec.doc ? `<button data-v="noreel">${rec.noReel ? '🎬 Back in reels' : '🚫 Leave out of reels'}</button>` : ''}
         <button data-v="del" class="danger">Delete</button>
       </div>
@@ -1464,6 +1484,8 @@ async function viewer(id) {
     if (a === 'star') { await Store.put({ id: rec.id, star: !rec.star }); viewer(id); }
     if (a === 'noreel') { await Store.put({ id: rec.id, noReel: !rec.noReel }); toast(rec.noReel ? 'Can be used in reels again' : 'Won’t be used in reels'); viewer(id); }
     if (a === 'avatar') { await Store.put({ id: 'profile', kind: 'profile', photoId: rec.id }); toast('Profile picture set'); }
+    if (a === 'portraitThis') { await setPortrait(rec.id); toast(`Week ${App.weekOf(rec.at)}’s portrait`); viewer(id); }
+    if (a === 'portraitPick') { el.hidden = true; el.innerHTML = ''; portraitPicker(App.weekOf(rec.at)); }
     if (a === 'share') {
       try { const blob = await Media.blobFor(rec); const file = new File([blob], rec.name || 'puppylog.jpg', { type: rec.mime });
         await navigator.share({ files: [file], title: App.pet(), text: rec.caption || '' }); } catch {}
