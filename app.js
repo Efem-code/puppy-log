@@ -222,7 +222,7 @@ async function quickLog(type, extra = {}) {
     const at = new Date().toISOString();
     const a = await Store.put({ kind: 'log', type: 'pee', at, ...extra }), b = await Store.put({ kind: 'log', type: 'poop', at, ...extra });
     navigator.vibrate && navigator.vibrate(15);
-    return toast(`💧💩 Pee + poop logged ${fmtTime(at)}`, [{ label: 'Undo', run: async () => { await Store.remove(a.id); await Store.remove(b.id); } }]);
+    return toast(`💧💩 Pee + poop logged ${fmtTime(at)}`, [{ label: 'Earlier?', run: () => earlier([a.id, b.id], '💧💩 Pee + poop') }, { label: 'Undo', run: async () => { await Store.remove(a.id); await Store.remove(b.id); } }]);
   }
   if (type === 'rest') {           // the single sleep button: Bedtime/Nap when awake, Morning/Awake when asleep
     const s = sleepState();
@@ -237,9 +237,29 @@ async function quickLog(type, extra = {}) {
     return toast(`🍖 Meal ${fmtTime(rec.at)} — how much did he eat?`, ['All', 'Most', 'Some', 'None'].map(a => ({ label: a, run: () => Store.put({ id: rec.id, ate: a }) })));
   }
   toast(`${LOG[type].icon} ${LOG[type].label} logged ${fmtTime(rec.at)}`, [
+    { label: 'Earlier?', run: () => earlier(rec.id, `${LOG[type].icon} ${LOG[type].label}`) },
     { label: 'Edit', run: () => editLog(rec.id) },
     { label: 'Undo', run: () => Store.remove(rec.id) },
   ]);
+}
+
+/* Most entries go in after the fact — half of the ones moved were 25 min to 3 h
+   late — so setting the real time is one tap, not the full edit form. */
+function earlier(ids, label) {
+  ids = [].concat(ids);
+  if (!Store.get(ids[0])) return;
+  const ago = m => new Date(Date.now() - m * 6e4).toISOString();
+  const name = m => m < 60 ? `${m} min` : { 60: '1 h', 90: '1½ h', 120: '2 h', 180: '3 h' }[m];
+  sheet(`<h2>When was it?</h2><p class="muted">${esc(label)}</p>
+    <div class="when">${[10, 20, 30, 45, 60, 90, 120, 180].map(m => `<button class="chip" data-m="${m}"><b>${name(m)} ago</b><small>${fmtTime(ago(m))}</small></button>`).join('')}</div>
+    <div class="btns"><span class="grow"></span><button class="ghost" id="when-pick">Pick a time…</button></div>`, r => {
+    r.querySelectorAll('[data-m]').forEach(b => b.onclick = async () => {
+      const at = ago(Number(b.dataset.m));
+      for (const id of ids) await Store.put({ id, at });
+      closeSheet(); toast(`Moved to ${fmtTime(at)}`);
+    });
+    $('#when-pick', r).onclick = () => editLog(ids[0]);
+  });
 }
 
 async function endWalk(w) {
@@ -338,6 +358,49 @@ function header(sub) {
   </header>`;
 }
 
+/* ---------- meals at a glance ---------- */
+/* Meals were the entry most often missed (about one a day logged for two fed).
+   Each meal time shows ✓ once logged, or one tap to log it at that time. The
+   meal-check notification opens Today, so it lands right on the button. */
+function mealSlots() {
+  const f = currentFood(); if (!f?.times) return [];
+  const out = [], re = /(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?/gi; let m;
+  while ((m = re.exec(f.times))) {
+    let h = Number(m[1]); const mi = Number(m[2] || 0), ap = (m[3] || '').toLowerCase();
+    if (ap[0] === 'p' && h < 12) h += 12;
+    if (ap[0] === 'a' && h === 12) h = 0;
+    if (h < 24 && mi < 60) out.push(h * 60 + mi);
+  }
+  return out.sort((a, b) => a - b);
+}
+function mealsCard() {
+  const slots = mealSlots();
+  if (!slots.length || ui.day !== todayKey()) return '';
+  const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+  const at = min => new Date(day0.getTime() + min * 6e4);
+  const meals = Store.list('log', r => r.type === 'meal' && localDay(r.at) === todayKey()).sort((a, b) => a.at < b.at ? -1 : 1);
+  const names = slots.length === 2 ? ['Breakfast', 'Dinner'] : slots.length === 3 ? ['Breakfast', 'Lunch', 'Dinner'] : slots.map((_, i) => `Meal ${i + 1}`);
+  const used = new Set();
+  const chips = slots.map((min, i) => {
+    const from = at(min - 90), to = i + 1 < slots.length ? at(slots[i + 1] - 90) : at(24 * 60);
+    const hit = meals.find(r => !used.has(r.id) && new Date(r.at) >= from && new Date(r.at) < to);
+    if (hit) { used.add(hit.id); return `<span class="meal done">✓ ${names[i]} <small>${fmtTime(hit.at)}${hit.ate ? ' · ' + esc(hit.ate.toLowerCase()) : ''}</small></span>`; }
+    if (Date.now() >= at(min - 30).getTime()) return `<button class="meal due" data-act="mealSlot" data-t="${at(min).toISOString()}">${isCat() ? '🐟' : '🍖'} ${names[i]} <small>tap when fed · ${fmtTime(at(min).toISOString())}</small></button>`;
+    return `<span class="meal"><b>${names[i]}</b> <small>${fmtTime(at(min).toISOString())}</small></span>`;
+  });
+  return `<section class="meals">${chips.join('')}</section>`;
+}
+
+/* Growing pups: a weigh-in every couple of weeks (it's how the vet doses meds too). */
+function weighCard() {
+  const last = Store.list('weight')[0], age = App.ageDays();
+  if (ui.day !== todayKey() || (age != null && age > 540) || Number(Store.pref('puppylog.weighSnooze') || 0) > Date.now()) return '';
+  const days = last ? Math.floor((Date.now() - T(last.at)) / 864e5) : null;
+  if (days != null && days < 14) return '';
+  return `<section class="card nudge"><div class="h-row"><span>⚖️ <b>Weigh-in time</b> <small class="muted">${last ? `last ${esc(String(last.value))} ${esc(last.unit || P().unit || 'kg')} · ${days} days ago` : 'no weight yet'}</small></span>
+    <span><button class="link" data-act="weighLater">Later</button> <button class="pill" data-act="addWeight">+ Weight</button></span></div></section>`;
+}
+
 function countdownCard() {
   const s = pottyStatus();
   if (s.asleep) {
@@ -348,7 +411,13 @@ function countdownCard() {
   return `<section class="card cd" id="cd"><div class="cd-row">
       <svg class="ring" viewBox="0 0 44 44"><circle cx="22" cy="22" r="19" class="ring-bg"/><circle cx="22" cy="22" r="19" class="ring-fg" id="cd-ring" pathLength="100"/></svg>
       <div><div class="cd-label">Next potty break</div><div class="cd-big" id="cd-big">—</div>
-      <p class="cd-why" id="cd-why"></p></div></div></section>`;
+      <p class="cd-why" id="cd-why"></p></div></div>${streakLine()}</section>`;
+}
+function streakLine() {
+  const first = Store.list('log').slice(-1)[0], last = Store.list('log', r => r.type === 'accident')[0];
+  const since = last || first; if (!since) return '';
+  const n = Math.floor((Date.now() - T(since.at)) / 864e5);
+  return n >= 7 ? `<p class="streak">🏆 ${n} days accident-free${n >= 30 ? ' — house trained!' : ''}</p>` : '';
 }
 
 function tickCountdown() {
@@ -437,6 +506,8 @@ VIEWS.today = () => {
     ${installCard()}
     ${homeCard()}
     ${isCat() || (P().homeDay && daysUntil(P().homeDay) > 0 && !Store.list('log').length) ? '' : countdownCard()}
+    ${mealsCard()}
+    ${weighCard()}
     ${whoLine()}
     ${isCat() ? '' : walkCard()}
     ${isCat() ? '' : planTodayCard()}
@@ -1012,6 +1083,13 @@ function syncLine() {
 /* ---------- actions ---------- */
 const ACT = {};
 Object.assign(ACT, EARLY_ACT);
+
+/* Today: meal slots and weigh-in buttons (cards defined above). */
+ACT.mealSlot = d => {
+  const slot = new Date(d.t).getTime();
+  quickLog('meal', { at: new Date(Date.now() - slot > 20 * 6e4 ? slot : Date.now()).toISOString() });   // late? log it at the meal time
+};
+ACT.weighLater = () => { Store.setPref('puppylog.weighSnooze', String(Date.now() + 5 * 864e5)); render(); };
 
 ACT.tab = d => { ui.tab = d.tab; if (d.tab === 'today') ui.day = todayKey(); render(); window.scrollTo(0, 0); };
 ACT.log = d => quickLog(d.k);

@@ -463,3 +463,21 @@ textarea.mono { width: 100%; font: 12px/1.4 ui-monospace, Menlo, monospace; word
 .install-steps { margin: 4px 0 6px; padding-left: 20px; }
 .install-steps li { margin: 6px 0; }
 p.mono { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+
+/* "When was it?" quick times */
+.when { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+.when .chip { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 12px; }
+.when .chip small { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+/* meal slots on Today */
+.meals { display: flex; gap: 8px; margin-bottom: 12px; }
+.meals .meal { flex: 1; border-radius: 12px; padding: 9px 10px; background: var(--soft); font-size: 14px; display: flex; flex-direction: column; text-align: left; }
+.meals .meal small { color: var(--muted); font-size: 11.5px; }
+.meals .meal.done { color: var(--good, #4caf50); }
+.meals .meal.due { background: var(--accent); color: var(--accent-ink); font-weight: 650; }
+.meals .meal.due small { color: inherit; opacity: .85; }
+
+/* nudges and streak */
+.card.nudge { padding: 10px 14px; }
+.card.nudge .h-row { flex-wrap: wrap; gap: 6px; }
+.streak { margin: 8px 0 0; font-weight: 650; font-size: 14px; }

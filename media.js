@@ -253,13 +253,18 @@ const Media = (() => {
   }
 
   /* Fill every <img data-thumb="id"> on screen. */
+  /* Thumbnails load as they come near the screen — Photos has hundreds, and
+     asking for them all at once made the tab slow, worst on a fresh phone. */
+  async function paint(el) {
+    const rec = Store.get(el.dataset.thumb);
+    if (!rec) return;
+    const u = await thumbURL(rec);
+    if (u) { el.style.backgroundImage = `url("${u}")`; el.classList.add('loaded'); }
+  }
+  const io = 'IntersectionObserver' in window
+    ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); paint(e.target); } }), { rootMargin: '800px' }) : null;
   function hydrate(root = document) {
-    root.querySelectorAll('[data-thumb]').forEach(async el => {
-      const rec = Store.get(el.dataset.thumb);
-      if (!rec) return;
-      const u = await thumbURL(rec);
-      if (u) { el.style.backgroundImage = `url("${u}")`; el.classList.add('loaded'); }
-    });
+    root.querySelectorAll('[data-thumb]').forEach(el => io ? io.observe(el) : paint(el));
   }
 
   /* ---- weekly portrait camera with last week's shot as a ghost ---- */
